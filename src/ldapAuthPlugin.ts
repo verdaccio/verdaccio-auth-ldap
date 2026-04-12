@@ -161,10 +161,20 @@ export default class LdapAuthPlugin {
   }
 
   /**
-   * User creation not supported — users are managed in LDAP.
+   * User creation is always disabled — users are managed in LDAP.
+   * Delegates to authenticate so existing LDAP users can obtain a token.
    */
-  public adduser(_user: string, _password: string, cb: Callback): void {
-    cb(errorUtils.getConflict('user registration is disabled, users are managed in LDAP'));
+  public adduser(user: string, password: string, cb: Callback): void {
+    debug('adduser user=%o (will attempt LDAP auth)', user);
+    this.authenticate(user, password, (err, groups) => {
+      if (err) {
+        debug('adduser user=%o LDAP auth failed, rejecting registration', user);
+        cb(errorUtils.getConflict('user registration is disabled, users are managed in LDAP'));
+        return;
+      }
+      debug('adduser user=%o LDAP auth succeeded', user);
+      cb(null, groups);
+    });
   }
 
   public allow_access(
