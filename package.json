@@ -1,0 +1,89 @@
+{
+  "name": "@verdaccio/auth-ldap",
+  "version": "1.0.0",
+  "description": "LDAP / Active Directory authentication plugin for Verdaccio",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "files": [
+    "lib/"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "keywords": [
+    "verdaccio",
+    "plugin",
+    "auth",
+    "ldap",
+    "active-directory",
+    "authentication"
+  ],
+  "author": "Juan Picado <juanpicado19@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://verdaccio.org",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/verdaccio/ldap.git"
+  },
+  "bugs": {
+    "url": "https://github.com/verdaccio/ldap/issues"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "dependencies": {
+    "@verdaccio/core": "9.0.0-next-9.5",
+    "debug": "4.4.3",
+    "ldapts": "7.2.1"
+  },
+  "devDependencies": {
+    "@changesets/changelog-github": "0.5.2",
+    "@changesets/cli": "2.29.8",
+    "@trivago/prettier-plugin-sort-imports": "4.3.0",
+    "@types/debug": "4.1.12",
+    "@types/jsonwebtoken": "9.0.10",
+    "@types/node": "25.5.0",
+    "@verdaccio/registry-cli": "^1.1.0",
+    "@verdaccio/e2e-ui": "^2.3.0",
+    "@verdaccio/eslint-config": "12.0.0",
+    "@verdaccio/plugin-verifier": "1.0.0-next-9.1",
+    "@verdaccio/types": "13.0.0-next-8.10",
+    "cross-env": "^7.0.3",
+    "cypress": "^15.13.1",
+    "eslint": "10.0.2",
+    "prettier": "3.8.1",
+    "rimraf": "^5.0.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.57.1",
+    "vite": "8.0.1",
+    "vite-plugin-dts": "4.5.4",
+    "vitest": "4.1.0"
+  },
+  "scripts": {
+    "clean": "rimraf ./lib",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "ci:version:changeset": "changeset version",
+    "ci:version": "pnpm ci:version:changeset && npm run ci:version:install",
+    "ci:version:install": "pnpm install --frozen-lockfile=false",
+    "ci:publish": "changeset publish",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,yml,yaml,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,yml,yaml,md}\"",
+    "build": "vite build",
+    "dev": "./scripts/dev.sh",
+    "e2e:ui": "cypress open",
+    "e2e:ui:run": "cypress run"
+  },
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/verdaccio"
+  }
+}

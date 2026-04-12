@@ -1,0 +1,34 @@
+storage: /verdaccio/storage
+
+plugins: /verdaccio/plugins
+
+auth:
+  '@verdaccio/auth-ldap':
+    url: LDAP_URL
+    baseDN: LDAP_BASE_DN
+    bindDN: LDAP_BIND_DN
+    bindCredentials: LDAP_BIND_PASSWORD
+    searchFilter: '(uid={{username}})'
+    groupSearchBase: LDAP_GROUP_SEARCH_BASE
+    groupSearchFilter: '(memberUid={{username}})'
+    groupAttribute: cn
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+
+packages:
+  '@*/*':
+    access: $authenticated
+    publish: $authenticated
+    proxy: npmjs
+  '**':
+    access: $authenticated
+    publish: $authenticated
+    proxy: npmjs
+
+log:
+  - {type: stdout, format: pretty, level: trace}
+
+listen:
+  - 0.0.0.0:4873
