@@ -3,7 +3,7 @@ storage: /verdaccio/storage
 plugins: /verdaccio/plugins
 
 auth:
-  ldap:
+  '@verdaccio/auth-ldap':
     url: LDAP_URL
     baseDN: LDAP_BASE_DN
     bindDN: LDAP_BIND_DN
