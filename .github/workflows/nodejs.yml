@@ -85,7 +85,7 @@ jobs:
       - name: Wait for Verdaccio
         run: |
           for i in $(seq 1 30); do
-            verdaccioctl ping -r http://localhost:4873 && exit 0
+            pnpm verdaccioctl ping -r http://localhost:4873 && exit 0
             sleep 2
           done
           docker compose logs verdaccio
@@ -96,8 +96,8 @@ jobs:
 
       - name: E2E - login, publish and fetch a package
         run: |
-          verdaccioctl login -u testuser -p testpassword -r http://localhost:4873
-          verdaccioctl whoami -r http://localhost:4873
+          pnpm verdaccioctl login -u testuser -p testpassword -r http://localhost:4873
+          pnpm verdaccioctl whoami -r http://localhost:4873
 
           TMPDIR=$(mktemp -d)
           echo '{"name":"ci-test-pkg","version":"1.0.0"}' > "$TMPDIR/package.json"
