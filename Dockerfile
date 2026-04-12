@@ -25,11 +25,11 @@ FROM verdaccio/verdaccio:7.x-next
 USER root
 
 # Copy the built plugin into verdaccio's plugin directory
-RUN mkdir -p /verdaccio/plugins/verdaccio-ldap
-COPY --from=builder /plugin/lib/          /verdaccio/plugins/verdaccio-ldap/lib/
-COPY --from=builder /plugin/package.json  /verdaccio/plugins/verdaccio-ldap/
+RUN mkdir -p /verdaccio/plugins/@verdaccio/auth-ldap
+COPY --from=builder /plugin/lib/          /verdaccio/plugins/@verdaccio/auth-ldap/lib/
+COPY --from=builder /plugin/package.json  /verdaccio/plugins/@verdaccio/auth-ldap/
 
-COPY --from=builder /plugin/node_modules/ /verdaccio/plugins/verdaccio-ldap/node_modules/
+COPY --from=builder /plugin/node_modules/ /verdaccio/plugins/@verdaccio/auth-ldap/node_modules/
 
 # Bake the default config into the image
 COPY conf/config.yaml /verdaccio/conf/config.yaml
