@@ -82,9 +82,6 @@ jobs:
       - name: Start services
         run: docker compose up -d
 
-      - name: Install verdaccioctl
-        run: npm install -g @verdaccio/registry-cli@1.1.0
-
       - name: Wait for Verdaccio
         run: |
           for i in $(seq 1 30); do
