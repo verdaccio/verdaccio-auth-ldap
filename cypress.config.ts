@@ -44,19 +44,19 @@ async function createTempProject(
   version: string,
   token: string,
   deps: Record<string, string>,
-  devDeps: Record<string, string>,
+  devDeps: Record<string, string>
 ): Promise<string> {
   const tempFolder = await mkdtemp(join(tmpdir(), `verdaccio-e2e-ldap-${sanitize(pkgName)}-`));
   await writeFile(
     join(tempFolder, 'package.json'),
-    JSON.stringify({name: pkgName, version, dependencies: deps, devDependencies: devDeps}),
+    JSON.stringify({name: pkgName, version, dependencies: deps, devDependencies: devDeps})
   );
   await writeFile(join(tempFolder, 'index.js'), `module.exports = {};`);
   await writeFile(join(tempFolder, 'README.md'), `# ${pkgName}`);
   const host = new URL(registryUrl).host;
   await writeFile(
     join(tempFolder, '.npmrc'),
-    `//${host}/:_authToken=${token}\nregistry=${registryUrl}\n`,
+    `//${host}/:_authToken=${token}\nregistry=${registryUrl}\n`
   );
   return tempFolder;
 }
@@ -100,12 +100,12 @@ export default defineConfig({
             version,
             token,
             input.dependencies ?? {},
-            input.devDependencies ?? {},
+            input.devDependencies ?? {}
           );
           const {stdout, stderr, exitCode} = await spawnNpmPublish(tempFolder);
           if (exitCode !== 0) {
             throw new Error(
-              `npm publish failed for ${input.pkgName}@${version} (exit ${exitCode}):\n${stderr || stdout}`,
+              `npm publish failed for ${input.pkgName}@${version} (exit ${exitCode}):\n${stderr || stdout}`
             );
           }
           return {pkgName: input.pkgName, version, tempFolder, stdout, stderr, exitCode};
@@ -118,13 +118,13 @@ export default defineConfig({
           const host = new URL(registryUrl).host;
           await writeFile(
             join(tempFolder, '.npmrc'),
-            `//${host}/:_authToken=${token}\nregistry=${registryUrl}\n`,
+            `//${host}/:_authToken=${token}\nregistry=${registryUrl}\n`
           );
           return new Promise((resolve, reject) => {
             const proc = spawn(
               'npm',
               ['unpublish', pkgName, '--force', '--registry', registryUrl],
-              {cwd: tempFolder},
+              {cwd: tempFolder}
             );
             let stdout = '';
             let stderr = '';
@@ -133,7 +133,8 @@ export default defineConfig({
             proc.on('error', reject);
             proc.on('close', async (code) => {
               await rm(tempFolder, {recursive: true, force: true}).catch(() => {});
-              const alreadyGone = (stderr + stdout).includes('404') || (stderr + stdout).includes('not found');
+              const alreadyGone =
+                (stderr + stdout).includes('404') || (stderr + stdout).includes('not found');
               resolve({pkgName, stdout, stderr, exitCode: code ?? -1, alreadyGone});
             });
           });
