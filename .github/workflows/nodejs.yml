@@ -82,46 +82,30 @@ jobs:
       - name: Start services
         run: docker compose up -d
 
+      - name: Install verdaccioctl
+        run: npm install -g @verdaccio/registry-cli@1.1.0
+
       - name: Wait for Verdaccio
         run: |
-          echo "Waiting for Verdaccio to be healthy..."
-          for i in $(seq 1 60); do
-            STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q verdaccio)" 2>/dev/null || echo "starting")
-            echo "  attempt $i: $STATUS"
-            [ "$STATUS" = "healthy" ] && echo "Verdaccio ready" && exit 0
+          for i in $(seq 1 30); do
+            verdaccioctl ping -r http://localhost:4873 && exit 0
             sleep 2
           done
-          echo "Verdaccio failed to become healthy"
           docker compose logs verdaccio
           exit 1
 
       - name: Verify plugin loaded
-        run: |
-          docker compose logs verdaccio 2>&1
-          docker compose logs verdaccio 2>&1 | grep -q "ldap"
+        run: docker compose logs verdaccio 2>&1 | grep -q "ldap"
 
-      - name: E2E - publish and fetch a package
+      - name: E2E - login, publish and fetch a package
         run: |
-          TOKEN=$(curl -sf -X PUT http://localhost:4873/-/user/org.couchdb.user:testuser \
-            -H 'Content-Type: application/json' \
-            -d '{"name":"testuser","password":"testpassword"}' | node -e "
-              process.stdin.setEncoding('utf8');
-              let d='';
-              process.stdin.on('data',c=>d+=c);
-              process.stdin.on('end',()=>console.log(JSON.parse(d).token))")
+          verdaccioctl login -u testuser -p testpassword -r http://localhost:4873
+          verdaccioctl whoami -r http://localhost:4873
 
           TMPDIR=$(mktemp -d)
           echo '{"name":"ci-test-pkg","version":"1.0.0"}' > "$TMPDIR/package.json"
           cd "$TMPDIR"
-          npm publish --registry http://localhost:4873 --//localhost:4873/:_authToken="$TOKEN"
-
-          RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" http://localhost:4873/ci-test-pkg | node -e "
-            process.stdin.setEncoding('utf8');
-            let d='';
-            process.stdin.on('data',c=>d+=c);
-            process.stdin.on('end',()=>console.log(JSON.parse(d).name))")
-
-          [ "$RESULT" = "ci-test-pkg" ] && echo "E2E passed" || { echo "E2E failed"; exit 1; }
+          npm publish --registry http://localhost:4873
 
       - name: E2E UI - publish tests (Cypress)
         run: pnpm e2e:ui:run

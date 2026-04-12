@@ -30,8 +30,7 @@ docker compose up -d
 # ── Wait for Verdaccio ──
 info "Waiting for Verdaccio to be healthy..."
 for i in $(seq 1 60); do
-  STATUS=$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q verdaccio)" 2>/dev/null || echo "starting")
-  if [ "$STATUS" = "healthy" ]; then
+  if pnpm verdaccioctl ping -r "$REGISTRY_URL" 2>/dev/null; then
     ok "Verdaccio is healthy"
     break
   fi
@@ -54,29 +53,16 @@ fi
 
 # ── Authenticate test user ──
 info "Authenticating as $LDAP_USER..."
-LOGIN_RESPONSE=$(curl -s --retry 3 --retry-delay 2 "$REGISTRY_URL/-/verdaccio/sec/login" \
-  -H 'Content-Type: application/json' \
-  -d "{\"username\":\"$LDAP_USER\",\"password\":\"$LDAP_PASS\"}" || true)
-
-TOKEN=$(echo "$LOGIN_RESPONSE" | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).token' 2>/dev/null || true)
-
-if [ -z "$TOKEN" ]; then
-  echo "Login response: $LOGIN_RESPONSE"
-  fail "Authentication failed — no token returned"
+if pnpm verdaccioctl login -u "$LDAP_USER" -p "$LDAP_PASS" -r "$REGISTRY_URL"; then
+  ok "Authenticated as $LDAP_USER"
+else
+  fail "Authentication failed"
 fi
-ok "Authenticated. Token: ${TOKEN:0:16}..."
 
 # ── Verify authenticated access ──
-info "Verifying authenticated access to registry..."
-HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
-  -H "Authorization: Bearer $TOKEN" \
-  "$REGISTRY_URL/-/verdaccio/data/packages")
-
-if [ "$HTTP_CODE" = "200" ]; then
-  ok "Authenticated API access verified (HTTP $HTTP_CODE)"
-else
-  fail "Authenticated API access failed (HTTP $HTTP_CODE)"
-fi
+info "Verifying identity..."
+pnpm verdaccioctl whoami -r "$REGISTRY_URL" || fail "whoami failed"
+ok "Authenticated access verified"
 
 # ── Summary ──
 echo ""
