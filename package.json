@@ -77,6 +77,7 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,yml,yaml,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,yml,yaml,md}\"",
     "build": "vite build",
+    "dev": "./scripts/dev.sh",
     "e2e:ui": "cypress open",
     "e2e:ui:run": "cypress run"
   },
