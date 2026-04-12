@@ -1,0 +1,109 @@
+services:
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: openldap
+    environment:
+      - LDAP_ORGANISATION=Verdaccio
+      - LDAP_DOMAIN=verdaccio.org
+      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_READONLY_USER=true
+      - LDAP_READONLY_USER_USERNAME=readonly
+      - LDAP_READONLY_USER_PASSWORD=readonly
+    ports:
+      - '389:389'
+      - '636:636'
+    volumes:
+      - ldap-data:/var/lib/ldap
+      - ldap-config:/etc/ldap/slapd.d
+    healthcheck:
+      test: ['CMD', 'ldapsearch', '-x', '-H', 'ldap://localhost', '-b', 'dc=verdaccio,dc=org', '-D', 'cn=admin,dc=verdaccio,dc=org', '-w', 'admin']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  seed-ldap:
+    image: osixia/openldap:1.5.0
+    container_name: seed-ldap
+    depends_on:
+      openldap:
+        condition: service_healthy
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        # Create groups OU
+        ldapadd -x -H ldap://openldap -D "cn=admin,dc=verdaccio,dc=org" -w admin <<EOF
+        dn: ou=groups,dc=verdaccio,dc=org
+        objectClass: organizationalUnit
+        ou: groups
+        EOF
+
+        # Create users OU
+        ldapadd -x -H ldap://openldap -D "cn=admin,dc=verdaccio,dc=org" -w admin <<EOF
+        dn: ou=users,dc=verdaccio,dc=org
+        objectClass: organizationalUnit
+        ou: users
+        EOF
+
+        # Create test user
+        ldapadd -x -H ldap://openldap -D "cn=admin,dc=verdaccio,dc=org" -w admin <<EOF
+        dn: uid=testuser,ou=users,dc=verdaccio,dc=org
+        objectClass: inetOrgPerson
+        objectClass: posixAccount
+        objectClass: shadowAccount
+        cn: Test User
+        sn: User
+        uid: testuser
+        uidNumber: 1000
+        gidNumber: 1000
+        homeDirectory: /home/testuser
+        userPassword: testpassword
+        mail: testuser@verdaccio.org
+        EOF
+
+        # Create developers group
+        ldapadd -x -H ldap://openldap -D "cn=admin,dc=verdaccio,dc=org" -w admin <<EOF
+        dn: cn=developers,ou=groups,dc=verdaccio,dc=org
+        objectClass: posixGroup
+        cn: developers
+        gidNumber: 2000
+        memberUid: testuser
+        EOF
+
+        # Create publishers group
+        ldapadd -x -H ldap://openldap -D "cn=admin,dc=verdaccio,dc=org" -w admin <<EOF
+        dn: cn=publishers,ou=groups,dc=verdaccio,dc=org
+        objectClass: posixGroup
+        cn: publishers
+        gidNumber: 2001
+        memberUid: testuser
+        EOF
+
+        echo "LDAP seed complete."
+
+  verdaccio:
+    container_name: verdaccio
+    build: .
+    depends_on:
+      openldap:
+        condition: service_healthy
+      seed-ldap:
+        condition: service_completed_successfully
+    environment:
+      - LDAP_URL=ldap://openldap:389
+      - LDAP_BASE_DN=ou=users,dc=verdaccio,dc=org
+      - LDAP_BIND_DN=cn=readonly,dc=verdaccio,dc=org
+      - LDAP_BIND_PASSWORD=readonly
+      - LDAP_GROUP_SEARCH_BASE=ou=groups,dc=verdaccio,dc=org
+      - DEBUG=verdaccio:plugin*
+    ports:
+      - '4873:4873'
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:4873/-/ping']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  ldap-data:
+  ldap-config:
