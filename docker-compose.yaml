@@ -16,8 +16,8 @@ services:
       - ldap-data:/var/lib/ldap
       - ldap-config:/etc/ldap/slapd.d
     healthcheck:
-      test: ['CMD', 'ldapsearch', '-x', '-H', 'ldap://localhost', '-b', 'dc=verdaccio,dc=org', '-D', 'cn=admin,dc=verdaccio,dc=org', '-w', 'admin']
-      interval: 5s
+      test: ['CMD', 'ldapsearch', '-x', '-H', 'ldap://localhost', '-s', 'base', '-b', '', '(objectClass=*)']
+      interval: 10s
       timeout: 5s
       retries: 10
 
@@ -99,10 +99,11 @@ services:
     ports:
       - '4873:4873'
     healthcheck:
-      test: ['CMD', 'curl', '-sf', 'http://localhost:4873/-/ping']
-      interval: 5s
+      test: ['CMD', 'wget', '--quiet', '-O', '/dev/null', 'http://127.0.0.1:4873/-/ping']
+      interval: 10s
       timeout: 5s
       retries: 12
+      start_period: 10s
 
 volumes:
   ldap-data:

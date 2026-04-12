@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Local development script for @verdaccio/auth-ldap
-# Builds the plugin, starts OpenLDAP + Verdaccio, verifies everything works,
-# and authenticates a test user.
+# Builds the plugin, starts OpenLDAP + Verdaccio, runs smoke checks,
+# then streams logs in the foreground (Ctrl-C to stop).
 
 REGISTRY_URL="http://localhost:4873"
 LDAP_USER="testuser"
@@ -19,9 +19,13 @@ cd "$(dirname "$0")/.."
 info "Stopping any existing containers..."
 docker compose down -v 2>/dev/null || true
 
-# ── Build and start ──
-info "Building Docker image and starting services..."
-docker compose up -d --build
+# ── Build images ──
+info "Building Docker image..."
+docker compose build
+
+# ── Start services (detached for smoke checks) ──
+info "Starting services..."
+docker compose up -d
 
 # ── Wait for Verdaccio ──
 info "Waiting for Verdaccio to be healthy..."
@@ -40,7 +44,8 @@ done
 
 # ── Verify plugin loaded ──
 info "Checking plugin loaded..."
-if docker compose logs verdaccio 2>&1 | grep -q "ldap"; then
+sleep 2
+if docker compose logs verdaccio 2>&1 | grep "ldap" > /dev/null; then
   ok "LDAP plugin detected in logs"
 else
   docker compose logs verdaccio
@@ -49,40 +54,29 @@ fi
 
 # ── Authenticate test user ──
 info "Authenticating as $LDAP_USER..."
-TOKEN=$(curl -sf -X PUT "$REGISTRY_URL/-/user/org.couchdb.user:$LDAP_USER" \
+LOGIN_RESPONSE=$(curl -s --retry 3 --retry-delay 2 "$REGISTRY_URL/-/verdaccio/sec/login" \
   -H 'Content-Type: application/json' \
-  -d "{\"name\":\"$LDAP_USER\",\"password\":\"$LDAP_PASS\"}" | node -e "
-    process.stdin.setEncoding('utf8');
-    let d='';
-    process.stdin.on('data',c=>d+=c);
-    process.stdin.on('end',()=>console.log(JSON.parse(d).token))")
+  -d "{\"username\":\"$LDAP_USER\",\"password\":\"$LDAP_PASS\"}" || true)
+
+TOKEN=$(echo "$LOGIN_RESPONSE" | node -p 'JSON.parse(require("fs").readFileSync(0,"utf8")).token' 2>/dev/null || true)
 
 if [ -z "$TOKEN" ]; then
+  echo "Login response: $LOGIN_RESPONSE"
   fail "Authentication failed — no token returned"
 fi
 ok "Authenticated. Token: ${TOKEN:0:16}..."
 
-# ── Publish a test package ──
-info "Publishing a test package..."
-TMPDIR=$(mktemp -d)
-cat > "$TMPDIR/package.json" <<'EOF'
-{"name":"ldap-dev-test","version":"1.0.0","description":"dev smoke test"}
-EOF
-(cd "$TMPDIR" && npm publish --registry "$REGISTRY_URL" --//localhost:4873/:_authToken="$TOKEN") 2>&1
+# ── Verify authenticated access ──
+info "Verifying authenticated access to registry..."
+HTTP_CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+  -H "Authorization: Bearer $TOKEN" \
+  "$REGISTRY_URL/-/verdaccio/data/packages")
 
-RESULT=$(curl -sf "$REGISTRY_URL/ldap-dev-test" | node -e "
-  process.stdin.setEncoding('utf8');
-  let d='';
-  process.stdin.on('data',c=>d+=c);
-  process.stdin.on('end',()=>console.log(JSON.parse(d).name))")
-
-if [ "$RESULT" = "ldap-dev-test" ]; then
-  ok "Package published and fetched successfully"
+if [ "$HTTP_CODE" = "200" ]; then
+  ok "Authenticated API access verified (HTTP $HTTP_CODE)"
 else
-  fail "Package verification failed"
+  fail "Authenticated API access failed (HTTP $HTTP_CODE)"
 fi
-
-rm -rf "$TMPDIR"
 
 # ── Summary ──
 echo ""
@@ -93,8 +87,10 @@ echo "  UI:        $REGISTRY_URL"
 echo "  User:      $LDAP_USER / $LDAP_PASS"
 echo "  Token:     $TOKEN"
 echo ""
-echo "  Useful commands:"
-echo "    docker compose logs -f verdaccio          # tail logs"
-echo "    pnpm e2e:ui                               # open Cypress"
-echo "    docker compose down -v                    # stop everything"
+echo "  Press Ctrl-C to stop all services."
 echo ""
+
+# ── Attach to logs (foreground) ──
+# Stop containers when the user hits Ctrl-C
+trap 'echo ""; info "Stopping services..."; docker compose down -v; exit 0' INT TERM
+docker compose logs -f

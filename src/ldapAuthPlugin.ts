@@ -1,6 +1,6 @@
 import debugCore from 'debug';
 
-import {errorUtils} from '@verdaccio/core';
+import {constants, errorUtils} from '@verdaccio/core';
 import type {
   Callback,
   Config,
@@ -224,15 +224,17 @@ export default class LdapAuthPlugin {
       return false;
     }
 
-    if (requiredGroups.includes('$all')) {
+    const {ROLES} = constants;
+
+    if (requiredGroups.includes(ROLES.$ALL)) {
       return true;
     }
 
-    if (requiredGroups.includes('$anonymous') && !user.name) {
+    if (requiredGroups.includes(ROLES.$ANONYMOUS) && !user.name) {
       return true;
     }
 
-    if (requiredGroups.includes('$authenticated') && user.name) {
+    if (requiredGroups.includes(ROLES.$AUTH) && user.name) {
       return true;
     }
 
