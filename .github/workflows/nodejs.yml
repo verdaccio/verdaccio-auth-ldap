@@ -115,7 +115,7 @@ jobs:
           cd "$TMPDIR"
           npm publish --registry http://localhost:4873 --//localhost:4873/:_authToken="$TOKEN"
 
-          RESULT=$(curl -sf http://localhost:4873/ci-test-pkg | node -e "
+          RESULT=$(curl -sf -H "Authorization: Bearer $TOKEN" http://localhost:4873/ci-test-pkg | node -e "
             process.stdin.setEncoding('utf8');
             let d='';
             process.stdin.on('data',c=>d+=c);
