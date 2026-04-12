@@ -63,7 +63,7 @@ async function createTempProject(
 
 function spawnNpmPublish(cwd: string): Promise<{stdout: string; stderr: string; exitCode: number}> {
   return new Promise((resolve, reject) => {
-    const proc = spawn('npm', ['publish', '--registry', registryUrl], {cwd});
+    const proc = spawn('npm', ['publish', '--registry', registryUrl, '--tag', 'e2e'], {cwd});
     let stdout = '';
     let stderr = '';
     proc.stdout.on('data', (c) => (stdout += c));
