@@ -7,7 +7,7 @@ import {verifyPlugin} from '@verdaccio/plugin-verifier';
 describe('Plugin loading verification', () => {
   test('should be loadable by verdaccio as an auth plugin', async () => {
     const result = await verifyPlugin({
-      pluginPath: 'ldap',
+      pluginPath: 'auth-ldap',
       category: 'auth',
       pluginsFolder: join(import.meta.dirname, '..', '..'),
       pluginConfig: {
