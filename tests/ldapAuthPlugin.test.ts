@@ -81,7 +81,9 @@ describe('LdapAuthPlugin', () => {
     });
 
     test('throws when baseDN is missing', () => {
-      const config = {auth: {'@verdaccio/auth-ldap': {url: 'ldap://localhost'}}} as unknown as Config;
+      const config = {
+        auth: {'@verdaccio/auth-ldap': {url: 'ldap://localhost'}},
+      } as unknown as Config;
       expect(() => new LdapAuthPlugin(config, {logger, config})).toThrow('requires a baseDN');
     });
 
@@ -147,25 +149,19 @@ describe('LdapAuthPlugin', () => {
     test('rejects when user not found', async () => {
       mockSearchLdap.mockResolvedValueOnce([]);
       const plugin = createPlugin();
-      const [err] = await cbToPromise((cb) =>
-        plugin.authenticate('unknown', 'password', cb)
-      );
+      const [err] = await cbToPromise((cb) => plugin.authenticate('unknown', 'password', cb));
       expect(err).toBeTruthy();
     });
 
     test('rejects when password is wrong', async () => {
-      mockSearchLdap.mockResolvedValueOnce([
-        {dn: 'uid=testuser,ou=users,dc=example,dc=org'},
-      ]);
+      mockSearchLdap.mockResolvedValueOnce([{dn: 'uid=testuser,ou=users,dc=example,dc=org'}]);
       // Second bind (user auth) fails
       mockBindClient
         .mockResolvedValueOnce(undefined) // service account bind OK
         .mockRejectedValueOnce(new Error('Invalid credentials'));
 
       const plugin = createPlugin();
-      const [err] = await cbToPromise((cb) =>
-        plugin.authenticate('testuser', 'wrongpassword', cb)
-      );
+      const [err] = await cbToPromise((cb) => plugin.authenticate('testuser', 'wrongpassword', cb));
       expect(err).toBeTruthy();
     });
 
@@ -183,9 +179,7 @@ describe('LdapAuthPlugin', () => {
       } as unknown as Config;
       const plugin = new LdapAuthPlugin(config, {logger, config});
 
-      mockSearchLdap.mockResolvedValueOnce([
-        {dn: 'uid=testuser,ou=users,dc=example,dc=org'},
-      ]);
+      mockSearchLdap.mockResolvedValueOnce([{dn: 'uid=testuser,ou=users,dc=example,dc=org'}]);
 
       const [err, groups] = await cbToPromise((cb) =>
         plugin.authenticate('testuser', 'password', cb)

@@ -16,7 +16,19 @@ services:
       - ldap-data:/var/lib/ldap
       - ldap-config:/etc/ldap/slapd.d
     healthcheck:
-      test: ['CMD', 'ldapsearch', '-x', '-H', 'ldap://localhost', '-s', 'base', '-b', '', '(objectClass=*)']
+      test:
+        [
+          'CMD',
+          'ldapsearch',
+          '-x',
+          '-H',
+          'ldap://localhost',
+          '-s',
+          'base',
+          '-b',
+          '',
+          '(objectClass=*)',
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

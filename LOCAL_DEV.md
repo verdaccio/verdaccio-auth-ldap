@@ -79,12 +79,12 @@ docker compose up -d --build
 
 ### Pre-seeded test data
 
-| Type  | DN                                              | Details                    |
-| ----- | ----------------------------------------------- | -------------------------- |
-| User  | `uid=testuser,ou=users,dc=verdaccio,dc=org`     | password: `testpassword`   |
-| Group | `cn=developers,ou=groups,dc=verdaccio,dc=org`   | members: `testuser`        |
-| Group | `cn=publishers,ou=groups,dc=verdaccio,dc=org`   | members: `testuser`        |
-| Admin | `cn=admin,dc=verdaccio,dc=org`                  | password: `admin`          |
+| Type  | DN                                            | Details                  |
+| ----- | --------------------------------------------- | ------------------------ |
+| User  | `uid=testuser,ou=users,dc=verdaccio,dc=org`   | password: `testpassword` |
+| Group | `cn=developers,ou=groups,dc=verdaccio,dc=org` | members: `testuser`      |
+| Group | `cn=publishers,ou=groups,dc=verdaccio,dc=org` | members: `testuser`      |
+| Admin | `cn=admin,dc=verdaccio,dc=org`                | password: `admin`        |
 
 ### Testing the local setup
 
@@ -162,8 +162,8 @@ DEBUG=verdaccio:plugin* docker compose up -d
 
 Available namespaces:
 
-| Namespace                       | What it logs                                    |
-| ------------------------------- | ----------------------------------------------- |
-| `verdaccio:plugin:ldap`         | Authentication and authorization decisions       |
-| `verdaccio:plugin:ldap:client`  | LDAP bind, search, unbind, and connection events |
-| `verdaccio:plugin:ldap:config`  | Config value resolution from env vars            |
+| Namespace                      | What it logs                                     |
+| ------------------------------ | ------------------------------------------------ |
+| `verdaccio:plugin:ldap`        | Authentication and authorization decisions       |
+| `verdaccio:plugin:ldap:client` | LDAP bind, search, unbind, and connection events |
+| `verdaccio:plugin:ldap:config` | Config value resolution from env vars            |

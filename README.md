@@ -24,19 +24,19 @@ Add to your Verdaccio `config.yaml`. Since this is a scoped package, use the ful
 auth:
   '@verdaccio/auth-ldap':
     # Connection
-    url: ldap://ldap.example.com:389           # ldaps:// for TLS
-    baseDN: ou=users,dc=example,dc=com         # base DN for user searches
-    bindDN: cn=readonly,dc=example,dc=com      # service account for searching (optional)
-    bindCredentials: readonly-password          # service account password
+    url: ldap://ldap.example.com:389 # ldaps:// for TLS
+    baseDN: ou=users,dc=example,dc=com # base DN for user searches
+    bindDN: cn=readonly,dc=example,dc=com # service account for searching (optional)
+    bindCredentials: readonly-password # service account password
 
     # User search
-    searchFilter: '(uid={{username}})'          # filter to find user (default: (uid={{username}}))
-    usernameAttribute: uid                     # attribute containing username (default: uid)
+    searchFilter: '(uid={{username}})' # filter to find user (default: (uid={{username}}))
+    usernameAttribute: uid # attribute containing username (default: uid)
 
     # Group search (optional — enables group-based authorization)
     groupSearchBase: ou=groups,dc=example,dc=com
-    groupSearchFilter: '(memberUid={{username}})'  # filter to find groups (default: (memberUid={{username}}))
-    groupAttribute: cn                             # attribute containing group name (default: cn)
+    groupSearchFilter: '(memberUid={{username}})' # filter to find groups (default: (memberUid={{username}}))
+    groupAttribute: cn # attribute containing group name (default: cn)
 
     # Group mapping (optional — map LDAP group names to friendly names)
     groupMapping:
@@ -44,13 +44,13 @@ auth:
       'cn=npm-admins,ou=groups,dc=example,dc=com': admins
 
     # Connection options
-    reconnect: true                            # auto-reconnect (default: true)
-    timeout: 5000                              # operation timeout in ms (default: 5000)
-    connectTimeout: 10000                      # connection timeout in ms (default: 10000)
+    reconnect: true # auto-reconnect (default: true)
+    timeout: 5000 # operation timeout in ms (default: 5000)
+    connectTimeout: 10000 # connection timeout in ms (default: 10000)
 
     # TLS options (for ldaps://)
     tlsOptions:
-      rejectUnauthorized: true                 # set to false for self-signed certs
+      rejectUnauthorized: true # set to false for self-signed certs
 ```
 
 ### Active Directory configuration
@@ -261,14 +261,14 @@ npm publish --registry http://your-verdaccio:4873
 
 ### Environment variables reference
 
-| Variable                  | Required | Description                                 |
-| ------------------------- | -------- | ------------------------------------------- |
-| `LDAP_URL`                | Yes      | LDAP server URL (ldap:// or ldaps://)       |
-| `LDAP_BASE_DN`            | Yes      | Base DN for user searches                   |
-| `LDAP_BIND_DN`            | No       | Service account DN for searching            |
-| `LDAP_BIND_PASSWORD`      | No       | Service account password                    |
-| `LDAP_GROUP_SEARCH_BASE`  | No       | Base DN for group searches                  |
-| `DEBUG`                   | No       | Set to `verdaccio:plugin*` for debug output |
+| Variable                 | Required | Description                                 |
+| ------------------------ | -------- | ------------------------------------------- |
+| `LDAP_URL`               | Yes      | LDAP server URL (ldap:// or ldaps://)       |
+| `LDAP_BASE_DN`           | Yes      | Base DN for user searches                   |
+| `LDAP_BIND_DN`           | No       | Service account DN for searching            |
+| `LDAP_BIND_PASSWORD`     | No       | Service account password                    |
+| `LDAP_GROUP_SEARCH_BASE` | No       | Base DN for group searches                  |
+| `DEBUG`                  | No       | Set to `verdaccio:plugin*` for debug output |
 
 Available debug namespaces:
 
@@ -356,20 +356,20 @@ npm install @verdaccio/auth-ldap
 
 ### What gets migrated automatically
 
-| Legacy property (verdaccio-ldap) | New property (@verdaccio/auth-ldap) |
-| --- | --- |
-| `client_options.url` | `url` |
-| `client_options.searchBase` | `baseDN` |
-| `client_options.adminDn` | `bindDN` |
-| `client_options.adminPassword` | `bindCredentials` |
-| `client_options.searchFilter` | `searchFilter` |
-| `client_options.groupSearchBase` | `groupSearchBase` |
-| `client_options.groupSearchFilter` | `groupSearchFilter` |
-| `client_options.groupDnProperty` | `groupAttribute` |
-| `client_options.reconnect` | `reconnect` |
-| `groupNameAttribute` | `groupAttribute` |
-| `{{dn}}` in groupSearchFilter | `{{username}}` |
-| env var `LDAP_ADMIN_PASS` | `bindCredentials` |
+| Legacy property (verdaccio-ldap)   | New property (@verdaccio/auth-ldap) |
+| ---------------------------------- | ----------------------------------- |
+| `client_options.url`               | `url`                               |
+| `client_options.searchBase`        | `baseDN`                            |
+| `client_options.adminDn`           | `bindDN`                            |
+| `client_options.adminPassword`     | `bindCredentials`                   |
+| `client_options.searchFilter`      | `searchFilter`                      |
+| `client_options.groupSearchBase`   | `groupSearchBase`                   |
+| `client_options.groupSearchFilter` | `groupSearchFilter`                 |
+| `client_options.groupDnProperty`   | `groupAttribute`                    |
+| `client_options.reconnect`         | `reconnect`                         |
+| `groupNameAttribute`               | `groupAttribute`                    |
+| `{{dn}}` in groupSearchFilter      | `{{username}}`                      |
+| env var `LDAP_ADMIN_PASS`          | `bindCredentials`                   |
 
 The following legacy options are dropped with a warning since they are no longer needed:
 

@@ -9,11 +9,7 @@ const debug = debugCore('verdaccio:plugin:ldap:client');
 export type {Entry};
 
 export function createLdapClient(config: LdapConfig): Client {
-  debug(
-    'creating LDAP client url=%o timeout=%o',
-    config.url,
-    config.timeout || 5000
-  );
+  debug('creating LDAP client url=%o timeout=%o', config.url, config.timeout || 5000);
 
   return new Client({
     url: config.url,

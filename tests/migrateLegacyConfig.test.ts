@@ -76,10 +76,7 @@ describe('migrateLegacyConfig', () => {
 
     test('emits deprecation warning for client_options', () => {
       migrateLegacyConfig({client_options: {url: 'ldap://localhost'}}, logger);
-      expect(logger.warn).toHaveBeenCalledWith(
-        {},
-        expect.stringContaining('client_options')
-      );
+      expect(logger.warn).toHaveBeenCalledWith({}, expect.stringContaining('client_options'));
     });
   });
 
@@ -115,19 +112,13 @@ describe('migrateLegacyConfig', () => {
     });
 
     test('new property wins when both old and new are present', () => {
-      const result = migrateLegacyConfig(
-        {baseDN: 'ou=new', searchBase: 'ou=old'},
-        logger
-      );
+      const result = migrateLegacyConfig({baseDN: 'ou=new', searchBase: 'ou=old'}, logger);
       expect(result.baseDN).toBe('ou=new');
       expect(result.searchBase).toBeUndefined();
     });
 
     test('emits deprecation warning per alias', () => {
-      migrateLegacyConfig(
-        {searchBase: 'ou=users', adminDn: 'cn=admin'},
-        logger
-      );
+      migrateLegacyConfig({searchBase: 'ou=users', adminDn: 'cn=admin'}, logger);
       expect(logger.warn).toHaveBeenCalledWith(
         {},
         expect.stringContaining('"searchBase" is deprecated')
@@ -141,10 +132,7 @@ describe('migrateLegacyConfig', () => {
 
   describe('{{dn}} replacement', () => {
     test('replaces {{dn}} with {{username}} in groupSearchFilter', () => {
-      const result = migrateLegacyConfig(
-        {groupSearchFilter: '(memberUid={{dn}})'},
-        logger
-      );
+      const result = migrateLegacyConfig({groupSearchFilter: '(memberUid={{dn}})'}, logger);
       expect(result.groupSearchFilter).toBe('(memberUid={{username}})');
     });
 
@@ -153,20 +141,15 @@ describe('migrateLegacyConfig', () => {
         {groupSearchFilter: '(|(member={{dn}})(uniqueMember={{dn}}))'},
         logger
       );
-      expect(result.groupSearchFilter).toBe(
-        '(|(member={{username}})(uniqueMember={{username}}))'
-      );
+      expect(result.groupSearchFilter).toBe('(|(member={{username}})(uniqueMember={{username}}))');
     });
 
     test('leaves {{username}} unchanged', () => {
-      const result = migrateLegacyConfig(
-        {groupSearchFilter: '(memberUid={{username}})'},
-        logger
-      );
+      const result = migrateLegacyConfig({groupSearchFilter: '(memberUid={{username}})'}, logger);
       expect(result.groupSearchFilter).toBe('(memberUid={{username}})');
       // No warning about {{dn}} since it's not present
-      const dnWarnings = (logger.warn as any).mock.calls.filter(
-        ([, msg]: [any, string]) => msg.includes('{{dn}}')
+      const dnWarnings = (logger.warn as any).mock.calls.filter(([, msg]: [any, string]) =>
+        msg.includes('{{dn}}')
       );
       expect(dnWarnings).toHaveLength(0);
     });
@@ -194,10 +177,7 @@ describe('migrateLegacyConfig', () => {
 
   describe('removed options', () => {
     test('drops cache config with warning', () => {
-      const result = migrateLegacyConfig(
-        {cache: {size: 100, expire: 300}},
-        logger
-      );
+      const result = migrateLegacyConfig({cache: {size: 100, expire: 300}}, logger);
       expect(result.cache).toBeUndefined();
       expect(logger.warn).toHaveBeenCalledWith(
         {},
@@ -206,10 +186,7 @@ describe('migrateLegacyConfig', () => {
     });
 
     test('drops searchAttributes with warning', () => {
-      const result = migrateLegacyConfig(
-        {searchAttributes: ['*', 'memberOf']},
-        logger
-      );
+      const result = migrateLegacyConfig({searchAttributes: ['*', 'memberOf']}, logger);
       expect(result.searchAttributes).toBeUndefined();
     });
 

@@ -27,16 +27,12 @@ describe('createLdapClient', () => {
   });
 
   test('creates a client with custom timeouts', () => {
-    const client = createLdapClient(
-      makeConfig({timeout: 3000, connectTimeout: 5000})
-    );
+    const client = createLdapClient(makeConfig({timeout: 3000, connectTimeout: 5000}));
     expect(client).toBeDefined();
   });
 
   test('creates a client with TLS options', () => {
-    const client = createLdapClient(
-      makeConfig({tlsOptions: {rejectUnauthorized: false}})
-    );
+    const client = createLdapClient(makeConfig({tlsOptions: {rejectUnauthorized: false}}));
     expect(client).toBeDefined();
   });
 });

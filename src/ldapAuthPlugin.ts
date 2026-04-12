@@ -1,13 +1,7 @@
 import debugCore from 'debug';
 
 import {constants, errorUtils} from '@verdaccio/core';
-import type {
-  Callback,
-  Config,
-  Logger,
-  PackageAccess,
-  RemoteUser,
-} from '@verdaccio/types';
+import type {Callback, Config, Logger, PackageAccess, RemoteUser} from '@verdaccio/types';
 
 import type {LdapConfig} from '../types';
 import {createLdapClient, bindClient, searchLdap, unbindClient} from './ldapClient';
@@ -23,7 +17,9 @@ export default class LdapAuthPlugin {
   public constructor(config: Config, options: {logger: Logger; config: Config}) {
     this.logger = options.logger;
     if (!config) {
-      throw new Error('ldap auth missing config. Add `auth.@verdaccio/auth-ldap` to your config file');
+      throw new Error(
+        'ldap auth missing config. Add `auth.@verdaccio/auth-ldap` to your config file'
+      );
     }
 
     const pluginConfig = config.auth?.['@verdaccio/auth-ldap'] ?? config.auth?.['ldap'] ?? {};
@@ -92,12 +88,10 @@ export default class LdapAuthPlugin {
 
         // Step 2: Search for the user DN
         const searchFilter = this.config.searchFilter!.replace(/\{\{username\}\}/g, user);
-        const userEntries = await searchLdap(
-          client,
-          this.config.baseDN,
-          searchFilter,
-          [this.config.usernameAttribute!, 'dn']
-        );
+        const userEntries = await searchLdap(client, this.config.baseDN, searchFilter, [
+          this.config.usernameAttribute!,
+          'dn',
+        ]);
 
         if (userEntries.length === 0) {
           debug('authenticate user=%o not found in LDAP', user);
@@ -129,12 +123,9 @@ export default class LdapAuthPlugin {
         let groups: string[] = [];
         if (this.config.groupSearchBase) {
           const groupFilter = this.config.groupSearchFilter!.replace(/\{\{username\}\}/g, user);
-          const groupEntries = await searchLdap(
-            client,
-            this.config.groupSearchBase,
-            groupFilter,
-            [this.config.groupAttribute!]
-          );
+          const groupEntries = await searchLdap(client, this.config.groupSearchBase, groupFilter, [
+            this.config.groupAttribute!,
+          ]);
 
           groups = groupEntries
             .map((entry) => {
