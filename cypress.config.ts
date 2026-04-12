@@ -47,17 +47,32 @@ async function createTempProject(
   devDeps: Record<string, string>
 ): Promise<string> {
   const tempFolder = await mkdtemp(join(tmpdir(), `verdaccio-e2e-ldap-${sanitize(pkgName)}-`));
+  const manifest = {
+    name: pkgName,
+    version,
+    description: `e2e test fixture ${pkgName}`,
+    main: 'index.js',
+    dependencies: deps,
+    devDependencies: devDeps,
+    keywords: ['verdaccio', 'e2e', 'test'],
+    author: 'Verdaccio E2E <verdaccio@example.org>',
+    license: 'MIT',
+    publishConfig: {access: 'public', registry: registryUrl},
+  };
+  await writeFile(join(tempFolder, 'package.json'), JSON.stringify(manifest, null, 2));
   await writeFile(
-    join(tempFolder, 'package.json'),
-    JSON.stringify({name: pkgName, version, dependencies: deps, devDependencies: devDeps})
+    join(tempFolder, 'README.md'),
+    `# ${pkgName}\n\nPublished by @verdaccio/e2e-ui for e2e testing.\n`
   );
-  await writeFile(join(tempFolder, 'index.js'), `module.exports = {};`);
-  await writeFile(join(tempFolder, 'README.md'), `# ${pkgName}`);
-  const host = new URL(registryUrl).host;
-  await writeFile(
-    join(tempFolder, '.npmrc'),
-    `//${host}/:_authToken=${token}\nregistry=${registryUrl}\n`
-  );
+  await writeFile(join(tempFolder, 'index.js'), `module.exports = ${JSON.stringify(pkgName)};\n`);
+  const registryHost = registryUrl.replace(/^https?:/, '');
+  const npmrc = [
+    `registry=${registryUrl}`,
+    `${registryHost}/:_authToken=${token}`,
+    'access=public',
+    '',
+  ].join('\n');
+  await writeFile(join(tempFolder, '.npmrc'), npmrc);
   return tempFolder;
 }
 
