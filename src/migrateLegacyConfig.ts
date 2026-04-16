@@ -73,13 +73,16 @@ export default function migrateLegacyConfig(
     }
   }
 
-  // Step 3: Replace {{dn}} with {{username}} in groupSearchFilter
+  // Step 3: Replace legacy {{dn}} placeholder with {{userDN}} in groupSearchFilter.
+  // In the old verdaccio-ldap plugin `{{dn}}` was substituted with the
+  // authenticated user's distinguished name (not the username) — that's the
+  // semantic preserved by `{{userDN}}` here.
   if (typeof config.groupSearchFilter === 'string' && config.groupSearchFilter.includes('{{dn}}')) {
     warnings.push(
-      '"{{dn}}" placeholder in groupSearchFilter is deprecated — use "{{username}}" instead'
+      '"{{dn}}" placeholder in groupSearchFilter is deprecated — use "{{userDN}}" (for the user\'s DN) or "{{username}}" (for the login name) instead'
     );
-    debug('replacing {{dn}} with {{username}} in groupSearchFilter');
-    config.groupSearchFilter = config.groupSearchFilter.replace(/\{\{dn\}\}/g, '{{username}}');
+    debug('replacing {{dn}} with {{userDN}} in groupSearchFilter');
+    config.groupSearchFilter = config.groupSearchFilter.replace(/\{\{dn\}\}/g, '{{userDN}}');
   }
 
   // Step 4: Legacy LDAP_ADMIN_PASS environment variable

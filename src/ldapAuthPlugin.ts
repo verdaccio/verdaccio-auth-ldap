@@ -10,6 +10,44 @@ import setConfigValue from './setConfigValue';
 
 const debug = debugCore('verdaccio:plugin:ldap');
 
+/**
+ * Escape a DN (or any string) for safe interpolation into an LDAP search
+ * filter per RFC 4515 §3.
+ */
+function escapeFilterValue(value: string): string {
+  return value.replace(/[\\*()\0]/g, (ch) => {
+    switch (ch) {
+      case '\\':
+        return '\\5c';
+      case '*':
+        return '\\2a';
+      case '(':
+        return '\\28';
+      case ')':
+        return '\\29';
+      case '\0':
+        return '\\00';
+      /* c8 ignore next 2 */
+      default:
+        return ch;
+    }
+  });
+}
+
+/**
+ * Extract the value of the first RDN from a DN. For `CN=Fiehe\, Christoph,OU=Foo,DC=bar`
+ * this returns `Fiehe, Christoph`. Falls back to the input when it does not
+ * look like a DN (no `=` before the first unescaped `,`).
+ */
+function extractFirstRDNValue(dn: string): string {
+  const match = dn.match(/^[^=,]+=((?:\\.|[^,\\])+)/);
+  if (!match) {
+    return dn;
+  }
+  // Unescape DN value: \, → , \\ → \ \# → #, etc.
+  return match[1].replace(/\\(.)/g, '$1');
+}
+
 export default class LdapAuthPlugin {
   public logger: Logger;
   public config: LdapConfig;
@@ -88,10 +126,16 @@ export default class LdapAuthPlugin {
 
         // Step 2: Search for the user DN
         const searchFilter = this.config.searchFilter!.replace(/\{\{username\}\}/g, user);
-        const userEntries = await searchLdap(client, this.config.baseDN, searchFilter, [
-          this.config.usernameAttribute!,
-          'dn',
-        ]);
+        const userAttributes = [this.config.usernameAttribute!, 'dn'];
+        if (this.config.userGroupsAttribute) {
+          userAttributes.push(this.config.userGroupsAttribute);
+        }
+        const userEntries = await searchLdap(
+          client,
+          this.config.baseDN,
+          searchFilter,
+          userAttributes
+        );
 
         if (userEntries.length === 0) {
           debug('authenticate user=%o not found in LDAP', user);
@@ -100,7 +144,8 @@ export default class LdapAuthPlugin {
           return;
         }
 
-        const userDN = userEntries[0].dn;
+        const userEntry = userEntries[0];
+        const userDN = userEntry.dn;
         debug('authenticate user=%o found dn=%o', user, userDN);
 
         // Step 3: Bind with user credentials to verify password
@@ -119,10 +164,30 @@ export default class LdapAuthPlugin {
           await unbindClient(userClient);
         }
 
-        // Step 4: Search for user groups
+        // Step 4: Resolve user groups
         let groups: string[] = [];
-        if (this.config.groupSearchBase) {
-          const groupFilter = this.config.groupSearchFilter!.replace(/\{\{username\}\}/g, user);
+        if (this.config.userGroupsAttribute) {
+          // Prefer reading group membership directly from the user entry
+          // (e.g. AD's `memberOf`). No extra LDAP round-trip.
+          const raw = userEntry[this.config.userGroupsAttribute];
+          const values: string[] = Array.isArray(raw)
+            ? (raw as unknown[]).map(String)
+            : raw != null
+              ? [String(raw)]
+              : [];
+          groups = values
+            .map((value) => (value.includes('=') ? extractFirstRDNValue(value) : value))
+            .filter(Boolean);
+          debug(
+            'authenticate user=%o groups resolved from user attribute %o: %o',
+            user,
+            this.config.userGroupsAttribute,
+            groups
+          );
+        } else if (this.config.groupSearchBase) {
+          const groupFilter = this.config
+            .groupSearchFilter!.replace(/\{\{username\}\}/g, user)
+            .replace(/\{\{userDN\}\}/g, escapeFilterValue(userDN));
           const groupEntries = await searchLdap(client, this.config.groupSearchBase, groupFilter, [
             this.config.groupAttribute!,
           ]);
@@ -134,11 +199,11 @@ export default class LdapAuthPlugin {
               return val as string;
             })
             .filter(Boolean);
+        }
 
-          // Apply group mapping
-          if (this.config.groupMapping) {
-            groups = groups.map((g) => this.config.groupMapping![g] || g);
-          }
+        // Apply group mapping
+        if (this.config.groupMapping) {
+          groups = groups.map((g) => this.config.groupMapping![g] || g);
         }
 
         debug('authenticate user=%o success, groups=%o', user, groups);

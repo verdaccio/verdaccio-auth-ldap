@@ -131,9 +131,9 @@ describe('migrateLegacyConfig', () => {
   });
 
   describe('{{dn}} replacement', () => {
-    test('replaces {{dn}} with {{username}} in groupSearchFilter', () => {
-      const result = migrateLegacyConfig({groupSearchFilter: '(memberUid={{dn}})'}, logger);
-      expect(result.groupSearchFilter).toBe('(memberUid={{username}})');
+    test('replaces {{dn}} with {{userDN}} in groupSearchFilter', () => {
+      const result = migrateLegacyConfig({groupSearchFilter: '(member={{dn}})'}, logger);
+      expect(result.groupSearchFilter).toBe('(member={{userDN}})');
     });
 
     test('replaces multiple {{dn}} occurrences', () => {
@@ -141,7 +141,7 @@ describe('migrateLegacyConfig', () => {
         {groupSearchFilter: '(|(member={{dn}})(uniqueMember={{dn}}))'},
         logger
       );
-      expect(result.groupSearchFilter).toBe('(|(member={{username}})(uniqueMember={{username}}))');
+      expect(result.groupSearchFilter).toBe('(|(member={{userDN}})(uniqueMember={{userDN}}))');
     });
 
     test('leaves {{username}} unchanged', () => {
@@ -210,7 +210,7 @@ describe('migrateLegacyConfig', () => {
           searchFilter: '(uid={{username}})',
           groupDnProperty: 'cn',
           groupSearchBase: 'ou=groups,dc=myorg,dc=com',
-          groupSearchFilter: '(memberUid={{dn}})',
+          groupSearchFilter: '(member={{dn}})',
           searchAttributes: ['*', 'memberOf'],
           reconnect: true,
         },
@@ -226,7 +226,7 @@ describe('migrateLegacyConfig', () => {
         searchFilter: '(uid={{username}})',
         groupAttribute: 'cn',
         groupSearchBase: 'ou=groups,dc=myorg,dc=com',
-        groupSearchFilter: '(memberUid={{username}})',
+        groupSearchFilter: '(member={{userDN}})',
         reconnect: true,
       });
     });

@@ -112,7 +112,7 @@ describe('LdapAuthPlugin', () => {
               searchBase: 'ou=People,dc=example,dc=com',
               searchFilter: '(uid={{username}})',
               groupSearchBase: 'ou=groups,dc=example,dc=com',
-              groupSearchFilter: '(memberUid={{dn}})',
+              groupSearchFilter: '(member={{dn}})',
             },
           },
         },
@@ -123,7 +123,7 @@ describe('LdapAuthPlugin', () => {
       expect(plugin.config.bindDN).toBe('cn=admin,dc=example,dc=com');
       expect(plugin.config.bindCredentials).toBe('admin');
       expect(plugin.config.groupAttribute).toBe('cn');
-      expect(plugin.config.groupSearchFilter).toBe('(memberUid={{username}})');
+      expect(plugin.config.groupSearchFilter).toBe('(member={{userDN}})');
     });
   });
 
@@ -163,6 +163,148 @@ describe('LdapAuthPlugin', () => {
       const plugin = createPlugin();
       const [err] = await cbToPromise((cb) => plugin.authenticate('testuser', 'wrongpassword', cb));
       expect(err).toBeTruthy();
+    });
+
+    test('reads groups from userGroupsAttribute (memberOf) without extra search', async () => {
+      const config = {
+        auth: {
+          '@verdaccio/auth-ldap': {
+            url: 'ldap://localhost:389',
+            baseDN: 'dc=example,dc=org',
+            bindDN: 'cn=admin,dc=example,dc=org',
+            bindCredentials: 'admin',
+            userGroupsAttribute: 'memberOf',
+            // groupSearchBase intentionally omitted — memberOf makes it redundant
+          },
+        },
+      } as unknown as Config;
+      const plugin = new LdapAuthPlugin(config, {logger, config});
+
+      // User entry carries memberOf values directly (AD-style DNs)
+      mockSearchLdap.mockResolvedValueOnce([
+        {
+          dn: 'CN=Fiehe\\, Christoph,OU=users,DC=example,DC=org',
+          memberOf: [
+            'CN=GroupA,OU=groups,DC=example,DC=org',
+            'CN=GroupB,OU=groups,DC=example,DC=org',
+          ],
+        },
+      ]);
+
+      const [err, groups] = await cbToPromise((cb) =>
+        plugin.authenticate('cfiehe', 'password', cb)
+      );
+      expect(err).toBeNull();
+      expect(groups).toEqual(['GroupA', 'GroupB']);
+      // Only one search (user lookup) — no separate group search
+      expect(mockSearchLdap).toHaveBeenCalledTimes(1);
+      // The user search must request the memberOf attribute
+      const [, , , requestedAttrs] = mockSearchLdap.mock.calls[0];
+      expect(requestedAttrs).toContain('memberOf');
+    });
+
+    test('normalizes single-valued userGroupsAttribute to an array', async () => {
+      const config = {
+        auth: {
+          '@verdaccio/auth-ldap': {
+            url: 'ldap://localhost:389',
+            baseDN: 'dc=example,dc=org',
+            userGroupsAttribute: 'memberOf',
+          },
+        },
+      } as unknown as Config;
+      const plugin = new LdapAuthPlugin(config, {logger, config});
+
+      mockSearchLdap.mockResolvedValueOnce([
+        {
+          dn: 'CN=Alice,OU=users,DC=example,DC=org',
+          memberOf: 'CN=LoneGroup,OU=groups,DC=example,DC=org',
+        },
+      ]);
+
+      const [err, groups] = await cbToPromise((cb) => plugin.authenticate('alice', 'pw', cb));
+      expect(err).toBeNull();
+      expect(groups).toEqual(['LoneGroup']);
+    });
+
+    test('userGroupsAttribute returns empty groups when attribute is absent', async () => {
+      const config = {
+        auth: {
+          '@verdaccio/auth-ldap': {
+            url: 'ldap://localhost:389',
+            baseDN: 'dc=example,dc=org',
+            userGroupsAttribute: 'memberOf',
+          },
+        },
+      } as unknown as Config;
+      const plugin = new LdapAuthPlugin(config, {logger, config});
+
+      mockSearchLdap.mockResolvedValueOnce([{dn: 'CN=Alice,OU=users,DC=example,DC=org'}]);
+
+      const [err, groups] = await cbToPromise((cb) => plugin.authenticate('alice', 'pw', cb));
+      expect(err).toBeNull();
+      expect(groups).toEqual([]);
+    });
+
+    test('substitutes {{userDN}} (filter-escaped) in groupSearchFilter', async () => {
+      const config = {
+        auth: {
+          '@verdaccio/auth-ldap': {
+            url: 'ldap://localhost:389',
+            baseDN: 'dc=example,dc=org',
+            bindDN: 'cn=admin,dc=example,dc=org',
+            bindCredentials: 'admin',
+            groupSearchBase: 'ou=groups,dc=example,dc=org',
+            groupSearchFilter: '(member={{userDN}})',
+          },
+        },
+      } as unknown as Config;
+      const plugin = new LdapAuthPlugin(config, {logger, config});
+
+      // The user DN contains an escaped comma and parentheses — all must be
+      // preserved in the DN but filter-escaped when interpolated.
+      mockSearchLdap
+        .mockResolvedValueOnce([{dn: 'CN=Fiehe\\, Christoph (ext),OU=users,DC=example,DC=org'}])
+        .mockResolvedValueOnce([{cn: 'GroupA'}, {cn: 'GroupB'}]);
+
+      const [err, groups] = await cbToPromise((cb) =>
+        plugin.authenticate('cfiehe', 'password', cb)
+      );
+      expect(err).toBeNull();
+      expect(groups).toEqual(['GroupA', 'GroupB']);
+
+      // Assert the interpolated group filter — parens are escaped, the DN's
+      // own escape sequence (\,) becomes \5c, (, ) → \28, \29.
+      const groupSearchCall = mockSearchLdap.mock.calls[1];
+      const interpolatedFilter = groupSearchCall[2];
+      expect(interpolatedFilter).toBe(
+        '(member=CN=Fiehe\\5c, Christoph \\28ext\\29,OU=users,DC=example,DC=org)'
+      );
+    });
+
+    test('applies groupMapping to memberOf-derived groups', async () => {
+      const config = {
+        auth: {
+          '@verdaccio/auth-ldap': {
+            url: 'ldap://localhost:389',
+            baseDN: 'dc=example,dc=org',
+            userGroupsAttribute: 'memberOf',
+            groupMapping: {GroupA: 'developers'},
+          },
+        },
+      } as unknown as Config;
+      const plugin = new LdapAuthPlugin(config, {logger, config});
+
+      mockSearchLdap.mockResolvedValueOnce([
+        {
+          dn: 'CN=Alice,DC=example,DC=org',
+          memberOf: ['CN=GroupA,DC=example,DC=org', 'CN=GroupB,DC=example,DC=org'],
+        },
+      ]);
+
+      const [err, groups] = await cbToPromise((cb) => plugin.authenticate('alice', 'pw', cb));
+      expect(err).toBeNull();
+      expect(groups).toEqual(['developers', 'GroupB']);
     });
 
     test('returns empty groups when no groupSearchBase', async () => {
