@@ -7,8 +7,8 @@ import {defineConfig} from 'cypress';
 import {setupVerdaccioTasks} from '@verdaccio/e2e-ui';
 
 const registryUrl = process.env.VERDACCIO_URL || 'http://localhost:4873';
-const ldapUser = 'testuser';
-const ldapPassword = 'testpassword';
+const ldapUser = process.env.LDAP_USER || 'testuser';
+const ldapPassword = process.env.LDAP_PASSWORD || 'testpassword';
 
 /**
  * Obtain a token via PUT /-/user/org.couchdb.user:<name> using
@@ -159,5 +159,7 @@ export default defineConfig({
   },
   env: {
     VERDACCIO_URL: registryUrl,
+    LDAP_USER: ldapUser,
+    LDAP_PASSWORD: ldapPassword,
   },
 });
