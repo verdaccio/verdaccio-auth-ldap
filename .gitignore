@@ -3,4 +3,6 @@ node_modules
 /lib/
 coverage/
 .DS_Store
-.claude
+.claude/**/*
+CLAUDE.md
+AGENTS.md
