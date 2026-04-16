@@ -1,0 +1,35 @@
+storage: /verdaccio/storage
+
+plugins: /verdaccio/plugins
+
+auth:
+  '@verdaccio/auth-ldap':
+    url: LDAP_URL
+    baseDN: LDAP_BASE_DN
+    bindDN: LDAP_BIND_DN
+    bindCredentials: LDAP_BIND_PASSWORD
+    # Real AD: search by sAMAccountName, not uid
+    searchFilter: '(&(objectClass=user)(sAMAccountName={{username}}))'
+    # Read groups directly from the user's memberOf attribute (AD populates this)
+    userGroupsAttribute: memberOf
+    groupAttribute: cn
+
+uplinks:
+  npmjs:
+    url: https://registry.npmjs.org/
+
+packages:
+  '@*/*':
+    access: $authenticated
+    publish: $authenticated
+    proxy: npmjs
+  '**':
+    access: $authenticated
+    publish: $authenticated
+    proxy: npmjs
+
+log:
+  - {type: stdout, format: pretty, level: trace}
+
+listen:
+  - 0.0.0.0:4873

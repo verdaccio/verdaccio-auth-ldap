@@ -1,0 +1,63 @@
+##
+# Active Directory integration test stack.
+#
+# Uses a real Samba AD Domain Controller — not an OpenLDAP mock.
+# The DC is provisioned with the MYCOMPANY.DE realm and seeded with the
+# user/group layout described in
+# https://github.com/verdaccio/verdaccio-auth-ldap/issues/3:
+#
+#   User:   CN=Christoph Fiehe,OU=CompanyUsers,DC=mycompany,DC=de
+#           sAMAccountName = cfiehe  /  password = testpassword
+#           memberOf: CN=GroupA,OU=CompanyGroups,...
+#           memberOf: CN=GroupB,OU=CompanyGroups,...
+#
+# Usage:
+#   docker compose -f docker-compose.ad.yaml up --build
+#   LDAP_USER=cfiehe LDAP_PASSWORD=testpassword pnpm e2e:ui:run
+##
+
+services:
+  samba-ad:
+    build: docker/samba-ad
+    container_name: samba-ad
+    privileged: true
+    ports:
+      - '389:389'
+      - '636:636'
+    healthcheck:
+      # Passes only after domain provisioning + user seeding are done
+      # (entrypoint seeds before starting the DC).
+      test:
+        [
+          'CMD',
+          'bash',
+          '-c',
+          'ldapsearch -x -H ldap://127.0.0.1 -D "CN=Administrator,CN=Users,DC=mycompany,DC=de" -w "P@ssw0rd123" -b "DC=mycompany,DC=de" "(sAMAccountName=cfiehe)" | grep -q cfiehe',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+
+  verdaccio:
+    container_name: verdaccio-ad
+    build: .
+    depends_on:
+      samba-ad:
+        condition: service_healthy
+    environment:
+      - LDAP_URL=ldap://samba-ad:389
+      - LDAP_BASE_DN=DC=mycompany,DC=de
+      - LDAP_BIND_DN=CN=Administrator,CN=Users,DC=mycompany,DC=de
+      - LDAP_BIND_PASSWORD=P@ssw0rd123
+      - DEBUG=verdaccio:plugin*
+    ports:
+      - '4873:4873'
+    volumes:
+      - ./conf/config.ad.yaml:/verdaccio/conf/config.yaml:ro
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '-O', '/dev/null', 'http://127.0.0.1:4873/-/ping']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
