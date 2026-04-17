@@ -30,10 +30,10 @@
   "homepage": "https://verdaccio.org",
   "repository": {
     "type": "git",
-    "url": "https://github.com/verdaccio/ldap.git"
+    "url": "https://github.com/verdaccio/verdaccio-auth-ldap.git"
   },
   "bugs": {
-    "url": "https://github.com/verdaccio/ldap/issues"
+    "url": "https://github.com/verdaccio/verdaccio-auth-ldap/issues"
   },
   "packageManager": "pnpm@9.15.4",
   "dependencies": {
