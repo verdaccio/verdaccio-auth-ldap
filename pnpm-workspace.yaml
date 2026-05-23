@@ -1,0 +1,8 @@
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - '@verdaccio/*'
+  - '@verdaccio-scope/*'
+  - 'verdaccio-*'
+saveExact: true
+ignoreScripts: true
+preferFrozenLockfile: true
