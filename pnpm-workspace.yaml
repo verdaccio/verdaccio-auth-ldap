@@ -5,3 +5,6 @@ minimumReleaseAgeExclude:
 saveExact: true
 ignoreScripts: true
 preferFrozenLockfile: true
+ignoredBuiltDependencies:
+  - cypress
+  - unrs-resolver
