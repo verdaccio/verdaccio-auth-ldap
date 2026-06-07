@@ -1,5 +1,11 @@
 # @verdaccio/auth-ldap
 
+## 1.3.1
+
+### Patch Changes
+
+- 273fd59: chore: foece release with env
+
 ## 1.3.0
 
 ### Minor Changes
