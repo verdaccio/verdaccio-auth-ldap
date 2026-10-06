@@ -1,4 +1,5 @@
 import {constants, errorUtils} from '@verdaccio/core';
+import type {pluginUtils} from '@verdaccio/core';
 import type {Callback, Config, Logger, PackageAccess, RemoteUser} from '@verdaccio/types';
 
 import type {LdapConfig} from '../types';
@@ -229,16 +230,16 @@ export default class LdapAuthPlugin {
    * User creation is always disabled — users are managed in LDAP.
    * Delegates to authenticate so existing LDAP users can obtain a token.
    */
-  public adduser(user: string, password: string, cb: Callback): void {
+  public adduser(user: string, password: string, cb: pluginUtils.AuthUserCallback): void {
     debug('adduser user=%o (will attempt LDAP auth)', user);
-    this.authenticate(user, password, (err, groups) => {
+    this.authenticate(user, password, (err) => {
       if (err) {
         debug('adduser user=%o LDAP auth failed, rejecting registration', user);
         cb(errorUtils.getConflict('user registration is disabled, users are managed in LDAP'));
         return;
       }
       debug('adduser user=%o LDAP auth succeeded', user);
-      cb(null, groups);
+      cb(null, true);
     });
   }
 

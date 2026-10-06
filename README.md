@@ -10,6 +10,14 @@ Authenticates users against an LDAP directory (OpenLDAP, Active Directory, FreeI
 - **Verdaccio** >= 6.x
 - **LDAP server** — OpenLDAP, Active Directory, FreeIPA, 389 Directory Server, etc.
 
+## User registration
+
+Users are managed in LDAP; this plugin does not create directory entries. The `adduser`
+hook validates existing users against LDAP so they can obtain a Verdaccio token. It
+reports success with `callback(null, true)` and rejects unsuccessful attempts with an
+error, following the [Verdaccio registration callback contract](https://www.verdaccio.org/docs/plugin-auth/#adduser-callback).
+LDAP groups are returned by `authenticate` for authorization.
+
 ## Installation
 
 ```bash
