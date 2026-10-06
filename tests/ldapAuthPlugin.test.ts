@@ -333,6 +333,52 @@ describe('LdapAuthPlugin', () => {
   });
 
   describe('adduser', () => {
+    test.each([{groups: []}, {groups: ['developers', 'publishers']}])(
+      'reports registration success as true for LDAP groups $groups',
+      async ({groups}) => {
+        const plugin = createPlugin();
+        mockSearchLdap
+          .mockResolvedValueOnce([{dn: 'uid=testuser,ou=users,dc=example,dc=org'}])
+          .mockResolvedValueOnce(groups.map((cn) => ({cn})));
+        const callback = vi.fn();
+        const completed = new Promise<void>((resolve) => {
+          expect(
+            plugin.adduser('testuser', 'password', (...args) => {
+              callback(...args);
+              resolve();
+            })
+          ).toBeUndefined();
+        });
+
+        await completed;
+        expect(callback).toHaveBeenCalledExactlyOnceWith(null, true);
+        expect(mockBindClient).toHaveBeenCalledWith(
+          expect.anything(),
+          'uid=testuser,ou=users,dc=example,dc=org',
+          'password'
+        );
+      }
+    );
+
+    test('rejects invalid LDAP credentials without reporting success', async () => {
+      const plugin = createPlugin();
+      mockSearchLdap.mockResolvedValueOnce([{dn: 'uid=testuser,ou=users,dc=example,dc=org'}]);
+      mockBindClient.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('invalid'));
+      const callback = vi.fn();
+      await new Promise<void>((resolve) => {
+        expect(
+          plugin.adduser('testuser', 'wrongpassword', (...args) => {
+            callback(...args);
+            resolve();
+          })
+        ).toBeUndefined();
+      });
+
+      expect(callback).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({statusCode: 409, message: expect.stringContaining('disabled')})
+      );
+    });
+
     test('rejects user creation', async () => {
       const plugin = createPlugin();
       const [err] = await cbToPromise((cb) => plugin.adduser('newuser', 'password', cb));
