@@ -1,5 +1,12 @@
 # @verdaccio/auth-ldap
 
+## 1.3.2
+
+### Patch Changes
+
+- 3092905: Return a boolean success value from the registration callback, as required by the Verdaccio authentication plugin contract. Existing LDAP users can still obtain tokens, while users remain managed in LDAP.
+- 5af7886: Migrate release automation to Changesets Action v2 and CLI v3.
+
 ## 1.3.1
 
 ### Patch Changes
